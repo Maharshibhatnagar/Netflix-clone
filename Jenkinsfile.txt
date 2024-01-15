@@ -34,7 +34,6 @@ pipeline {
         stage("Quality Gate") {
             steps {
                 script {
-                    // Use the waitForQualityGate step directly
                     def qg = waitForQualityGate(credentialsId: 'Sonar-token')
                     if (qg.status != 'OK') {
                         error "Quality Gate failed: ${qg.status}"
@@ -83,6 +82,19 @@ pipeline {
         stage('Deploy to container') {
             steps {
                 sh 'docker run -d --name netflix -p 8081:80 maharshibhatnagar/netflix:latest'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    dir('Kubernetes') {
+                        withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'k8s', namespace: '', restrictKubeConfigAccess: false, serverUrl: '') {
+                            sh 'kubectl apply -f deployment.yml'
+                            sh 'kubectl apply -f service.yml'
+                        }
+                    }
+                }
             }
         }
     }
